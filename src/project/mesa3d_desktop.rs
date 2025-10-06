@@ -27,7 +27,7 @@ where
         self.get_name()
     }
     fn get_android_path(&self) -> Result<PathBuf, String> {
-        Ok(Path::new("vendor/google/graphics").join(self.get_name()))
+        Ok(Path::new("external").join(self.get_name()))
     }
     fn generate_package(
         &mut self,

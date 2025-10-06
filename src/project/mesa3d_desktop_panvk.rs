@@ -1,4 +1,6 @@
 // Copyright 2025 ninja-to-soong authors
+// Copyright 2025 Valentine Burley (valentine.burley@collabora.com)
+// Copyright 2025 Venkata Atchuta Bheemeswara Sarma Darbha (vdarbha0473@gmail.com)
 // SPDX-License-Identifier: Apache-2.0
 
 use super::*;
@@ -13,7 +15,7 @@ const RAW_DEFAULTS: &str = "mesa3d-desktop-panvk-raw-defaults";
 
 impl mesa3d_desktop::Mesa3dProject for Mesa3DDesktopPanVK {
     fn get_name(&self) -> &'static str {
-        "mesa3d/desktop-panvk"
+        "mesa3d-panfrost"
     }
 
     fn get_subprojects_path(&self) -> String {
@@ -42,18 +44,53 @@ impl mesa3d_desktop::Mesa3dProject for Mesa3DDesktopPanVK {
         .generate(
             NinjaTargetsToGenMap::from(&[
                 target!(
+                    "src/mesa/glapi/shared-glapi/libglapi.so.0.0.0",
+                    "libglapi",
+                    "libglapi"
+                ),
+                target!(
+                    "src/gallium/targets/dri/libgallium_dri.so",
+                    "libgallium_dri",
+                    "libgallium_dri"
+                ),
+                target!(
+                    "src/egl/libEGL_mesa.so.1.0.0",
+                    "libEGL_mesa",
+                    "libEGL_mesa"
+                ),
+                target!(
+                    "src/mesa/glapi/es2api/libGLESv2_mesa.so.2.0.0",
+                    "libGLESv2_mesa",
+                    "libGLESv2_mesa"
+                ),
+                target!(
+                    "src/mesa/glapi/es1api/libGLESv1_CM_mesa.so.1.1.0",
+                    "libGLESv1_CM_mesa",
+                    "libGLESv1_CM_mesa"
+                ),
+                target!(
+                    "src/gbm/backends/dri/dri_gbm.so",
+                    "dri_gbm",
+                    "dri_gbm"
+                ),
+                target!(
+                    "src/gbm/libgbm_mesa.so.1.0.0",
+                    "libgbm_mesa",
+                    "libgbm_mesa"
+                ),
+                target!(
                     "src/panfrost/vulkan/libvulkan_panfrost.so",
-                    "mesa3d_desktop-panvk_libvulkan_panfrost",
+                    "vulkan.panfrost",
                     "vulkan.panfrost"
                 ),
                 target!(
                     "src/tool/pps/pps-producer",
-                    "mesa3d_desktop-panvk_pps-producer",
+                    "pps-producer",
                     "pps-producer"
                 ),
                 target!(
                     "src/tool/pps/libgpudataproducer.so",
-                    "mesa3d_desktop-panvk_libgpudataproducer",
+                    "libgpudataproducer",
                     "libgpudataproducer_panfrost"
                 ),
             ]),
@@ -91,11 +128,30 @@ cc_defaults {{
     }
 
     fn extend_module(&self, target: &Path, mut module: SoongModule) -> Result<SoongModule, String> {
-        if target.ends_with("libvulkan_panfrost.so") {
-            module = module
+
+        let relative_install = |module: SoongModule| -> SoongModule{
+            for lib in [
+                "libGLESv1_CM_mesa.so.1.1.0",
+                "libGLESv2_mesa.so.2.0.0",
+                "libEGL_mesa.so.1.0.0",
+
+            ]{
+                if target.ends_with(lib){
+
+                    return module
+                                .add_prop("relative_install_path",SoongProp::Str((String::from("egl"))))
+                }
+            }
+            if target.ends_with("libvulkan_panfrost.so") {
+            return module
                 .add_prop("relative_install_path", SoongProp::Str(String::from("hw")))
                 .add_prop("afdo", SoongProp::Bool(true))
         }
+        module
+
+        };
+        module = relative_install(module);
+       
 
         let mut cflags = vec![
             "-Wno-constant-conversion",
